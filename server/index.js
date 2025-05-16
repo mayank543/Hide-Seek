@@ -28,14 +28,31 @@ const MAP_SIZE = 20;
 let players = {};
 
 // Generate a shared map (0 = floor, 1 = wall)
+// This will be the single source of truth for all clients
 const map = [];
+const WALL_PROBABILITY = 0.2;
+
+// Create deterministic map (optional: use a seed for true reproducibility)
+// const seed = Math.floor(Math.random() * 1000000);
+// console.log(`Map seed: ${seed}`); // Log the seed for debugging
+// Math.random = () => { /* seeded random function */ };
+
+// Create map with walls
 for (let y = 0; y < MAP_SIZE; y++) {
   map[y] = [];
   for (let x = 0; x < MAP_SIZE; x++) {
-    const isWall = Math.random() < 0.2;
-    map[y][x] = isWall ? 1 : 0;
+    // Always make the player spawn area (1,1) and adjacent tiles floors
+    if ((x <= 2 && y <= 2)) {
+      map[y][x] = 0; // Floor
+    } else {
+      const isWall = Math.random() < WALL_PROBABILITY;
+      map[y][x] = isWall ? 1 : 0;
+    }
   }
 }
+
+// Ensure the spawn area (1,1) is always floor
+map[1][1] = 0;
 
 io.on('connection', (socket) => {
   console.log(`✅ Player connected: ${socket.id}`);

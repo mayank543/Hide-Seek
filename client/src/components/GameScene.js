@@ -23,18 +23,16 @@ export default class GameScene extends Phaser.Scene {
     this.mapSize = 20;
     this.tileSize = 64;
 
-    // Create random wall map
-    this.map = [];
+    // Initialize empty map that will be filled from server data
+    this.map = Array(this.mapSize).fill().map(() => Array(this.mapSize).fill(0));
     this.tiles = [];
+    
+    // Create map tiles (visuals only - actual map data will come from server)
     for (let y = 0; y < this.mapSize; y++) {
-      this.map[y] = [];
       for (let x = 0; x < this.mapSize; x++) {
-        const isWall = Math.random() < 0.2;
-        this.map[y][x] = isWall ? 1 : 0;
-
-        const frame = isWall ? 1 : 0;
+        // Default to floor tiles (will be updated with server data)
         const tile = this.add
-          .sprite(x * this.tileSize, y * this.tileSize, "tiles", frame)
+          .sprite(x * this.tileSize, y * this.tileSize, "tiles", 0)
           .setOrigin(0)
           .setDisplaySize(this.tileSize, this.tileSize);
         this.tiles.push(tile);
@@ -109,15 +107,15 @@ export default class GameScene extends Phaser.Scene {
     this.socket.on("init", ({ map, players }) => {
       console.log("Received initial game state:", { mapLength: map?.length, playerCount: Object.keys(players).length });
       
+      // Use the server's map instead of client-generated one
+      this.loadServerMap(map);
+      
       // Handle existing players (excluding ourselves)
       Object.entries(players).forEach(([id, data]) => {
         if (id !== this.socket.id && data?.x != null && data?.y != null) {
           this.addOtherPlayer(id, data.x, data.y);
         }
       });
-      
-      // Optionally use the server's map instead of generating our own
-      // this.loadServerMap(map);
     });
 
     // For backward compatibility - keep this listener too
@@ -153,12 +151,14 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
-  // Optional method if you want to use the server's map
+  // Load map data from server
   loadServerMap(serverMap) {
     if (!serverMap || !Array.isArray(serverMap) || serverMap.length === 0) {
-      console.warn("Invalid server map data");
+      console.warn("Invalid server map data, using default map");
       return;
     }
+
+    console.log("Loading map from server...");
 
     // Update tiles based on server map
     for (let y = 0; y < Math.min(this.mapSize, serverMap.length); y++) {
@@ -166,13 +166,17 @@ export default class GameScene extends Phaser.Scene {
         const tileType = serverMap[y][x];
         const index = y * this.mapSize + x;
         
+        // Update internal map data
+        this.map[y][x] = tileType;
+        
+        // Update visual tile
         if (index < this.tiles.length) {
-          this.map[y][x] = tileType;
           this.tiles[index].setFrame(tileType === 1 ? 1 : 0);
         }
       }
     }
 
+    console.log("Map loaded from server successfully");
     // Update fog after loading map
     this.updateFog();
   }
