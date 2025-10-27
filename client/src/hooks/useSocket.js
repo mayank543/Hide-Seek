@@ -19,7 +19,7 @@ export const useSocket = () => {
         reconnectionAttempts: 3,
       });
     }
-    
+
     // Use the global socket
     socketRef.current = globalSocket;
 
@@ -37,7 +37,7 @@ export const useSocket = () => {
     // Register event handlers
     socketRef.current.on("connect", onConnect);
     socketRef.current.on("disconnect", onDisconnect);
-    
+
     // If already connected, update state accordingly
     if (socketRef.current.connected) {
       console.log("Socket already connected:", socketRef.current.id);
